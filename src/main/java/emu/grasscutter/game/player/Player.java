@@ -10,33 +10,35 @@ import emu.grasscutter.database.DatabaseHelper;
 import emu.grasscutter.game.Account;
 import emu.grasscutter.game.CoopRequest;
 import emu.grasscutter.game.ability.AbilityManager;
+import emu.grasscutter.game.achievement.Achievements;
 import emu.grasscutter.game.activity.ActivityManager;
 import emu.grasscutter.game.avatar.Avatar;
 import emu.grasscutter.game.avatar.AvatarStorage;
 import emu.grasscutter.game.battlepass.BattlePassManager;
-import emu.grasscutter.game.entity.*;
-import emu.grasscutter.game.home.GameHome;
+import emu.grasscutter.game.entity.GameEntity;
 import emu.grasscutter.game.expedition.ExpeditionInfo;
 import emu.grasscutter.game.friends.FriendsList;
 import emu.grasscutter.game.friends.PlayerProfile;
 import emu.grasscutter.game.gacha.PlayerGachaInfo;
+import emu.grasscutter.game.home.GameHome;
 import emu.grasscutter.game.inventory.GameItem;
 import emu.grasscutter.game.inventory.Inventory;
 import emu.grasscutter.game.mail.Mail;
 import emu.grasscutter.game.mail.MailHandler;
-import emu.grasscutter.game.managers.cooking.ActiveCookCompoundData;
-import emu.grasscutter.game.managers.cooking.CookingCompoundManager;
-import emu.grasscutter.game.managers.cooking.CookingManager;
 import emu.grasscutter.game.managers.FurnitureManager;
 import emu.grasscutter.game.managers.ResinManager;
 import emu.grasscutter.game.managers.SatiationManager;
+import emu.grasscutter.game.managers.SotSManager;
+import emu.grasscutter.game.managers.cooking.ActiveCookCompoundData;
+import emu.grasscutter.game.managers.cooking.CookingCompoundManager;
+import emu.grasscutter.game.managers.cooking.CookingManager;
 import emu.grasscutter.game.managers.deforestation.DeforestationManager;
 import emu.grasscutter.game.managers.energy.EnergyManager;
 import emu.grasscutter.game.managers.forging.ActiveForgeData;
 import emu.grasscutter.game.managers.forging.ForgingManager;
-import emu.grasscutter.game.managers.mapmark.*;
+import emu.grasscutter.game.managers.mapmark.MapMark;
+import emu.grasscutter.game.managers.mapmark.MapMarksManager;
 import emu.grasscutter.game.managers.stamina.StaminaManager;
-import emu.grasscutter.game.managers.SotSManager;
 import emu.grasscutter.game.props.ActionReason;
 import emu.grasscutter.game.props.ClimateType;
 import emu.grasscutter.game.props.PlayerProperty;
@@ -49,17 +51,20 @@ import emu.grasscutter.game.tower.TowerManager;
 import emu.grasscutter.game.world.Scene;
 import emu.grasscutter.game.world.World;
 import emu.grasscutter.net.packet.BasePacket;
-import emu.grasscutter.net.proto.*;
 import emu.grasscutter.net.proto.AbilityInvokeEntryOuterClass.AbilityInvokeEntry;
 import emu.grasscutter.net.proto.AttackResultOuterClass.AttackResult;
 import emu.grasscutter.net.proto.CombatInvokeEntryOuterClass.CombatInvokeEntry;
 import emu.grasscutter.net.proto.GadgetInteractReqOuterClass.GadgetInteractReq;
 import emu.grasscutter.net.proto.MpSettingTypeOuterClass.MpSettingType;
 import emu.grasscutter.net.proto.OnlinePlayerInfoOuterClass.OnlinePlayerInfo;
+import emu.grasscutter.net.proto.PlayerApplyEnterMpResultNotifyOuterClass;
 import emu.grasscutter.net.proto.PlayerLocationInfoOuterClass.PlayerLocationInfo;
+import emu.grasscutter.net.proto.PlayerWorldLocationInfoOuterClass;
 import emu.grasscutter.net.proto.ProfilePictureOuterClass.ProfilePicture;
 import emu.grasscutter.net.proto.PropChangeReasonOuterClass.PropChangeReason;
+import emu.grasscutter.net.proto.ShowAvatarInfoOuterClass;
 import emu.grasscutter.net.proto.SocialDetailOuterClass.SocialDetail;
+import emu.grasscutter.net.proto.SocialShowAvatarInfoOuterClass;
 import emu.grasscutter.scripts.data.SceneRegion;
 import emu.grasscutter.server.event.player.PlayerJoinEvent;
 import emu.grasscutter.server.event.player.PlayerQuitEvent;
@@ -68,15 +73,13 @@ import emu.grasscutter.server.game.GameSession;
 import emu.grasscutter.server.game.GameSession.SessionState;
 import emu.grasscutter.server.packet.send.*;
 import emu.grasscutter.utils.DateHelper;
-import emu.grasscutter.utils.Position;
 import emu.grasscutter.utils.MessageHandler;
+import emu.grasscutter.utils.Position;
 import emu.grasscutter.utils.Utils;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import lombok.Getter;
 import lombok.Setter;
-
-import static emu.grasscutter.config.Configuration.*;
 
 import java.time.DayOfWeek;
 import java.time.Instant;
@@ -85,6 +88,8 @@ import java.time.ZoneId;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.LinkedBlockingQueue;
+
+import static emu.grasscutter.config.Configuration.GAME_OPTIONS;
 
 @Entity(value = "players", useDiscriminator = false)
 public class Player {
@@ -168,6 +173,7 @@ public class Player {
     @Getter private transient SatiationManager satiationManager;
 
     // Manager data (Save-able to the database)
+    @Getter private transient Achievements achievements;
     private PlayerProfile playerProfile;  // Getter has null-check
     @Getter private TeamManager teamManager;
     private TowerData towerData;  // Getter has null-check
@@ -197,6 +203,7 @@ public class Player {
     @Getter @Setter private long springLastUsed;
     private HashMap<String, MapMark> mapMarks;  // Getter makes an empty hashmap - maybe do this elsewhere?
     @Getter @Setter private int nextResinRefresh;
+    @Getter @Setter private int resinBuyCount;
     @Getter @Setter private int lastDailyReset;
     @Getter private transient MpSettingType mpSetting = MpSettingType.MP_SETTING_TYPE_ENTER_AFTER_APPLY;  // TODO
 
@@ -973,9 +980,13 @@ public class Player {
                 .setIsShowAvatar(this.isShowAvatars())
                 .addAllShowAvatarInfoList(socialShowAvatarInfoList)
                 .addAllShowNameCardIdList(this.getShowNameCardInfoList())
-                .setFinishAchievementNum(0)
+                .setFinishAchievementNum(this.getFinishedAchievementNum())
                 .setFriendEnterHomeOptionValue(this.getHome() == null ? 0 : this.getHome().getEnterHomeOption());
         return social;
+    }
+
+    public int getFinishedAchievementNum() {
+        return Achievements.getByPlayer(this).getFinishedAchievementNum();
     }
 
     public List<ShowAvatarInfoOuterClass.ShowAvatarInfo> getShowAvatarInfoList() {
@@ -1107,6 +1118,9 @@ public class Player {
 
         // Satiation
         this.getSatiationManager().reduceSatiation();
+
+        // Home resources
+        this.getHome().updateHourlyResources(this);
     }
 
     private synchronized void doDailyReset() {
@@ -1135,6 +1149,9 @@ public class Player {
         if (currentDate.getDayOfWeek() == DayOfWeek.MONDAY) {
             this.getBattlePassManager().resetWeeklyMissions();
         }
+
+        // Reset resin-buying count.
+        this.setResinBuyCount(0);
 
         // Done. Update last reset time.
         this.setLastDailyReset(currentTime);
@@ -1169,6 +1186,7 @@ public class Player {
         }
 
         // Load from db
+        this.achievements = Achievements.getByPlayer(this);
         this.getAvatars().loadFromDatabase();
         this.getInventory().loadFromDatabase();
         this.loadBattlePassManager(); // Call before avatar postLoad to avoid null pointer
@@ -1221,6 +1239,10 @@ public class Player {
         session.send(new PacketQuestListNotify(this));
         session.send(new PacketCodexDataFullNotify(this));
         session.send(new PacketAllWidgetDataNotify(this));
+
+        //Achievements
+        this.achievements.onLogin(this);
+
         session.send(new PacketWidgetGadgetAllDataNotify());
         session.send(new PacketCombineDataNotify(this.unlockedCombines));
         session.send(new PacketGetChatEmojiCollectionRsp(this.getChatEmojiIdList()));

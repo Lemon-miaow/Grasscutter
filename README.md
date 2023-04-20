@@ -3,7 +3,7 @@
 
 <div align="center"><a href="https://discord.gg/T5vZU6UyeG"><img alt="Discord - Grasscutter" src="https://img.shields.io/discord/965284035985305680?label=Discord&logo=discord&style=for-the-badge"></a></div>
 
-[EN](README.md) | [简中](README_zh-CN.md) | [繁中](README_zh-TW.md) | [FR](README_fr-FR.md) | [ES](README_es-ES.md) | [HE](README_HE.md) | [RU](README_ru-RU.md) | [PL](README_pl-PL.md) | [ID](README_id-ID.md) | [KR](README_ko-KR.md) | [FIL/PH](README_fil-PH.md) | [NL](README_NL.md) | [JP](README_ja-JP.md) | [IT](README_it-IT.md)
+[EN](README.md) | [简中](docs/README_zh-CN.md) | [繁中](docs/README_zh-TW.md) | [FR](docs/README_fr-FR.md) | [ES](docs/README_es-ES.md) | [HE](docs/README_HE.md) | [RU](docs/README_ru-RU.md) | [PL](docs/README_pl-PL.md) | [ID](docs/README_id-ID.md) | [KR](docs/README_ko-KR.md) | [FIL/PH](docs/README_fil-PH.md) | [NL](docs/README_NL.md) | [JP](docs/README_ja-JP.md) | [IT](docs/README_it-IT.md) | [VI](docs/README_vi-VN.md)
 
 **Attention:** We always welcome contributors to the project. Before adding your contribution, please carefully read our [Code of Conduct](https://github.com/Grasscutters/Grasscutter/blob/stable/CONTRIBUTING.md).
 
@@ -20,7 +20,7 @@
 
 ## Quick setup guide
 
-**Note:** For support please join our [Discord](https://discord.gg/T5vZU6UyeG).
+**Note**: For support please join our [Discord](https://discord.gg/T5vZU6UyeG).
 
 ### Requirements
 
@@ -86,7 +86,7 @@ cd Grasscutter
 .\gradlew jar # Compile
 ```
 
-##### Linux
+##### Linux (GNU)
 
 ```bash
 git clone https://github.com/Grasscutters/Grasscutter.git
@@ -97,10 +97,6 @@ chmod +x gradlew
 
 You can find the output jar in the root of the project folder.
 
-### Commands have moved to the [wiki](https://github.com/Grasscutters/Grasscutter/wiki/Commands)!
+### Troubleshooting 
 
-# Quick Troubleshooting
-
-* If compiling wasn't successful, please check your JDK installation (Make sure its JDK 17 or higher and validated JDK's bin PATH variable).
-* My client doesn't connect, doesn't login, 4206, etc... - Mostly your proxy daemon setup is *the issue*. If you're using Fiddler, change the default port to anything other than 8888.
-* Startup sequence: MongoDB > Grasscutter > Proxy Daemon (mitmdump, fiddler, etc.) > Game
+For a list of common issues and solutions and to ask for help, please join [our Discord server](https://discord.gg/T5vZU6UyeG) and go to the support channel.
